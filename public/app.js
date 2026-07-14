@@ -46,7 +46,7 @@ async function refreshAll() {
   const apiConfig = await getJson("/api/config").catch(() => null);
   const [catalog, cache] = apiConfig
     ? await Promise.all([getJson("/api/catalog"), getJson("/api/cache")])
-    : await Promise.all([getJson("data/catalog.json"), getJson("data/cache.json").catch(() => null)]);
+    : await Promise.all([getJson("data/catalog.json"), getJson(staticDataUrl("data/cache.json")).catch(() => null)]);
   state.config =
     apiConfig ||
     {
@@ -67,9 +67,13 @@ async function refreshAll() {
 }
 
 async function refreshCache() {
-  const cacheUrl = state.config?.staticMode ? `data/cache.json?ts=${Date.now()}` : "/api/cache";
+  const cacheUrl = state.config?.staticMode ? staticDataUrl("data/cache.json") : "/api/cache";
   state.cache = withFallbackCache(await getJson(cacheUrl), state.catalog);
   render();
+}
+
+function staticDataUrl(path) {
+  return `${path}?v=${Date.now()}`;
 }
 
 async function refreshStatus() {
