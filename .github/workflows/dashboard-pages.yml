@@ -1,0 +1,59 @@
+name: Publish Dashboard
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Create private env
+        run: |
+          {
+            echo "SOUNDCHARTS_APP_ID=${{ secrets.SOUNDCHARTS_APP_ID }}"
+            echo "SOUNDCHARTS_API_KEY=${{ secrets.SOUNDCHARTS_API_KEY }}"
+            echo "SOUNDCHARTS_BASE_URL=https://customer.api.soundcharts.com"
+          } > .env
+
+      - name: Sync Soundcharts cache
+        run: npm run sync
+
+      - name: Build static dashboard
+        run: |
+          mkdir -p site/data
+          cp public/* site/
+          cp data/catalog.json site/data/catalog.json
+          cp data/cache.json site/data/cache.json
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

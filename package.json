@@ -1,0 +1,10 @@
+{
+  "name": "lir-recordings-soundcharts-dashboard",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node --use-system-ca server.mjs",
+    "sync": "node --use-system-ca tools/sync-cache.mjs"
+  }
+}

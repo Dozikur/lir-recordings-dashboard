@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="cs">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Let It Roll Recordings Dashboard</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <h1>Let It Roll Recordings</h1>
+        <p id="syncLine">Nacitam dashboard...</p>
+      </div>
+      <div class="actions">
+        <button id="syncButton" class="primary" type="button" title="Aktualizovat data">
+          <span aria-hidden="true">↻</span>
+          <span>Aktualizovat</span>
+        </button>
+        <button id="autoButton" type="button" title="Automaticka aktualizace">
+          <span aria-hidden="true">◷</span>
+          <span>Auto</span>
+        </button>
+      </div>
+    </header>
+
+    <main>
+      <section class="status-strip" aria-label="Stav">
+        <div class="metric">
+          <span>Releasy</span>
+          <strong id="releaseCount">0</strong>
+        </div>
+        <div class="metric">
+          <span>Tracky k API</span>
+          <strong id="readyCount">0</strong>
+        </div>
+        <div class="metric">
+          <span>Synchronizovano</span>
+          <strong id="syncedCount">0</strong>
+        </div>
+        <div class="metric warn">
+          <span>Chybi ISRC</span>
+          <strong id="missingCount">0</strong>
+        </div>
+        <div class="metric">
+          <span>Prumer score</span>
+          <strong id="averageScore">0.0</strong>
+        </div>
+      </section>
+
+      <section id="authBanner" class="banner hidden" aria-live="polite"></section>
+
+      <section class="grid">
+        <div class="panel span-8">
+          <div class="panel-head">
+            <h2>Track performance</h2>
+            <select id="sortSelect" aria-label="Razeni tracku">
+              <option value="score">Score</option>
+              <option value="streams">Streams/views</option>
+              <option value="catalog">Katalog</option>
+              <option value="missing">Chybejici ISRC</option>
+            </select>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Katalog</th>
+                  <th>Track</th>
+                  <th>ISRC</th>
+                  <th>Artist</th>
+                  <th>Spotify</th>
+                  <th>YouTube</th>
+                  <th>Playlist reach</th>
+                  <th>Radio</th>
+                  <th>Score</th>
+                </tr>
+              </thead>
+              <tbody id="trackRows"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="panel span-4">
+          <div class="panel-head">
+            <h2>Top score</h2>
+          </div>
+          <canvas id="scoreChart" width="520" height="320"></canvas>
+        </div>
+
+        <div class="panel span-4">
+          <div class="panel-head">
+            <h2>Platform totals</h2>
+          </div>
+          <div class="totals">
+            <div><span>Spotify streams</span><strong id="spotifyTotal">0</strong></div>
+            <div><span>YouTube views</span><strong id="youtubeTotal">0</strong></div>
+            <div><span>SoundCloud plays</span><strong id="soundcloudTotal">0</strong></div>
+            <div><span>Playlist reach</span><strong id="playlistTotal">0</strong></div>
+            <div><span>Radio spins</span><strong id="radioTotal">0</strong></div>
+          </div>
+        </div>
+
+        <div class="panel span-4">
+          <div class="panel-head">
+            <h2>Sync log</h2>
+          </div>
+          <div class="progress">
+            <div id="progressBar"></div>
+          </div>
+          <ul id="syncLog" class="log"></ul>
+        </div>
+
+        <div class="panel span-4">
+          <div class="panel-head">
+            <h2>Katalog</h2>
+          </div>
+          <div class="release-list" id="releaseList"></div>
+        </div>
+      </section>
+    </main>
+
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>
