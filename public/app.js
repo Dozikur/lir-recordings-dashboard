@@ -59,7 +59,8 @@ async function refreshAll() {
   state.catalog = catalog;
   state.cache = withFallbackCache(cache, catalog);
   if (state.config.staticMode) {
-    els.syncButton.disabled = true;
+    els.syncButton.disabled = false;
+    els.syncButton.querySelector("span:last-child").textContent = "Spustit update";
     els.autoButton.disabled = true;
   }
   render();
@@ -86,7 +87,8 @@ async function refreshStatus() {
 async function syncNow() {
   if (state.config?.staticMode) {
     clearLog();
-    appendLog("Na GitHub Pages obnovuje data GitHub Actions. Spust workflow nebo pockej na planovanou aktualizaci.");
+    appendLog("Oteviram GitHub Actions. Tam klikni na Run workflow.");
+    window.open("https://github.com/Dozikur/lir-recordings-dashboard/actions/workflows/dashboard-pages.yml", "_blank");
     return;
   }
   els.syncButton.disabled = true;
