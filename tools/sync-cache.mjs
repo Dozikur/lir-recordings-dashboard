@@ -4,8 +4,14 @@ import { fileURLToPath } from "node:url";
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const env = await loadEnv(path.join(root, ".env"));
+normalizeEnvSecrets();
 const catalog = JSON.parse(await fs.readFile(path.join(root, "data", "catalog.json"), "utf8"));
 assertAuthConfigured();
+console.log(
+  `Soundcharts auth mode: ${env.SOUNDCHARTS_ACCESS_TOKEN ? "access_token" : "legacy_headers"}; app id length: ${
+    env.SOUNDCHARTS_APP_ID?.length || 0
+  }; api key length: ${env.SOUNDCHARTS_API_KEY?.length || 0}`
+);
 
 const zeroStats = {
   spotifyStreams: 0,
@@ -162,6 +168,15 @@ function assertAuthConfigured() {
   if (env.SOUNDCHARTS_ACCESS_TOKEN) return;
   if (env.SOUNDCHARTS_APP_ID && env.SOUNDCHARTS_API_KEY) return;
   throw new Error("Missing Soundcharts credentials. Set SOUNDCHARTS_APP_ID and SOUNDCHARTS_API_KEY in GitHub Secrets.");
+}
+
+function normalizeEnvSecrets() {
+  for (const key of ["SOUNDCHARTS_ACCESS_TOKEN", "SOUNDCHARTS_APP_ID", "SOUNDCHARTS_API_KEY"]) {
+    if (!env[key]) continue;
+    env[key] = env[key].trim().replace(/^["']|["']$/g, "");
+    const assignmentPrefix = `${key}=`;
+    if (env[key].startsWith(assignmentPrefix)) env[key] = env[key].slice(assignmentPrefix.length).trim();
+  }
 }
 
 function getAuthHeaders() {
