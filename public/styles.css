@@ -279,8 +279,7 @@ canvas {
   padding: 14px;
 }
 
-.totals div,
-.release-list div {
+.totals div {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -318,13 +317,76 @@ canvas {
 }
 
 .release-list {
-  max-height: 220px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  max-height: 360px;
   overflow: auto;
-  padding: 8px 14px 14px;
+  padding: 12px 14px 14px;
 }
 
-.release-list strong {
+.release-card {
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 68px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.release-cover {
+  width: 54px;
+  height: 54px;
+  overflow: hidden;
+  border-radius: 6px;
+  background: var(--blue-soft);
+}
+
+.release-cover img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cover-fallback {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+  color: var(--navy);
   font-size: 12px;
+  font-weight: 800;
+}
+
+.release-copy {
+  min-width: 0;
+}
+
+.release-copy span,
+.release-copy small {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.release-copy strong {
+  display: block;
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.release-card em {
+  color: var(--teal);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 700;
   white-space: nowrap;
 }
 

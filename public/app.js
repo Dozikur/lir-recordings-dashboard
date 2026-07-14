@@ -1,4 +1,4 @@
-const state = {
+﻿const state = {
   catalog: null,
   cache: null,
   config: null,
@@ -155,7 +155,7 @@ function renderSummary(summary) {
   els.averageScore.textContent = decimal(summary.averageScore);
   const updated = state.cache?.updatedAt ? formatDateTime(state.cache.updatedAt) : "zatim bez synchronizace";
   const auth = state.config?.authMode === "not_configured" ? "bez API" : state.config?.authMode;
-  els.syncLine.textContent = `Stav: ${auth} · posledni update: ${updated}`;
+  els.syncLine.textContent = `Stav: ${auth} Â· posledni update: ${updated}`;
 }
 
 function renderRows(inputTracks) {
@@ -271,12 +271,30 @@ function roundRect(ctx, x, y, width, height, radius) {
 }
 
 function renderReleases() {
+  const tracksByRelease = new Map();
+  for (const track of state.cache.tracks || []) {
+    if (!tracksByRelease.has(track.catalogId)) tracksByRelease.set(track.catalogId, []);
+    tracksByRelease.get(track.catalogId).push(track);
+  }
+
   els.releaseList.innerHTML = state.catalog.releases
     .map((release) => {
       const label = release.status === "verified" ? "ISRC OK" : release.status === "needs_isrc" ? "vice tracku" : "overit";
-      return `<div>
-        <span>${escapeHtml(release.catalogId)} · ${escapeHtml(release.release)}</span>
-        <strong>${label}</strong>
+      const releaseTracks = tracksByRelease.get(release.catalogId) || [];
+      const cover = releaseTracks.find((track) => track.imageUrl)?.imageUrl || "";
+      const releaseScore = releaseTracks.reduce((sum, track) => sum + Number(track.score || 0), 0);
+      const spotify = releaseTracks.reduce((sum, track) => sum + Number(track.stats?.spotifyStreams || 0), 0);
+      const coverHtml = cover
+        ? `<img src="${escapeHtml(cover)}" alt="" loading="lazy" />`
+        : `<span class="cover-fallback">${escapeHtml(release.catalogId.slice(0, 3))}</span>`;
+      return `<div class="release-card">
+        <div class="release-cover">${coverHtml}</div>
+        <div class="release-copy">
+          <span>${escapeHtml(release.catalogId)}</span>
+          <strong>${escapeHtml(release.release)}</strong>
+          <small>${number(spotify)} Spotify · score ${decimal(releaseScore)}</small>
+        </div>
+        <em>${label}</em>
       </div>`;
     })
     .join("");
@@ -371,7 +389,7 @@ function formatDateTime(value) {
 
 function trim(value, length) {
   const text = String(value || "");
-  return text.length > length ? `${text.slice(0, length - 1)}…` : text;
+  return text.length > length ? `${text.slice(0, length - 1)}â€¦` : text;
 }
 
 function escapeHtml(value) {
@@ -382,3 +400,4 @@ function escapeHtml(value) {
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
 }
+

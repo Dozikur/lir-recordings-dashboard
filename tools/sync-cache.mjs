@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const env = await loadEnv(path.join(root, ".env"));
 const catalog = JSON.parse(await fs.readFile(path.join(root, "data", "catalog.json"), "utf8"));
+assertAuthConfigured();
 
 const zeroStats = {
   spotifyStreams: 0,
@@ -55,6 +56,15 @@ const cache = {
   tracks,
   summary: summarize(tracks, catalog.releases),
 };
+
+if (cache.summary.readyForApi > 0 && cache.summary.synced === 0) {
+  const sampleErrors = tracks
+    .filter((track) => track.isrc && !track.ok)
+    .slice(0, 5)
+    .map((track) => `${track.isrc}: ${track.error || "unknown error"}`)
+    .join("; ");
+  throw new Error(`Soundcharts sync returned 0/${cache.summary.readyForApi} tracks. Check GitHub Secrets. ${sampleErrors}`);
+}
 
 await fs.writeFile(path.join(root, "data", "cache.json"), `${JSON.stringify(cache, null, 2)}\n`, "utf8");
 
@@ -146,6 +156,12 @@ async function soundchartsOptional(endpoint) {
 
 function getBaseUrl() {
   return (env.SOUNDCHARTS_BASE_URL || "https://customer.api.soundcharts.com").replace(/\/$/, "");
+}
+
+function assertAuthConfigured() {
+  if (env.SOUNDCHARTS_ACCESS_TOKEN) return;
+  if (env.SOUNDCHARTS_APP_ID && env.SOUNDCHARTS_API_KEY) return;
+  throw new Error("Missing Soundcharts credentials. Set SOUNDCHARTS_APP_ID and SOUNDCHARTS_API_KEY in GitHub Secrets.");
 }
 
 function getAuthHeaders() {
