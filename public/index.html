@@ -17,13 +17,11 @@
         </div>
       </div>
       <div class="actions">
-        <button id="syncButton" class="primary" type="button" title="Otevrit GitHub Actions">
-          <span aria-hidden="true">↻</span>
-          <span>Otevrit workflow</span>
+        <button id="syncButton" class="primary" type="button" title="Spustit rucni aktualizaci dat">
+          <span>Update data</span>
         </button>
-        <button id="autoButton" type="button" title="API sync je vypnuty pro design mode">
-          <span aria-hidden="true">●</span>
-          <span>API off</span>
+        <button id="autoButton" type="button" title="Data se aktualizuji pouze rucne">
+          <span>Manual refresh</span>
         </button>
       </div>
     </header>
@@ -33,7 +31,7 @@
         <div>
           <span class="section-kicker">Top performance</span>
           <h2 id="heroTitle">Nacitam top track...</h2>
-          <p id="heroMeta">Posledni publikovana cache, bez automatickeho API syncu.</p>
+          <p id="heroMeta">Performance snapshot pro vedeni labelu.</p>
         </div>
         <div class="hero-stats">
           <div><span>Spotify</span><strong id="heroSpotify">0</strong></div>
@@ -48,15 +46,15 @@
           <strong id="releaseCount">0</strong>
         </div>
         <div class="metric">
-          <span>Tracky k API</span>
+          <span>Tracky v reportu</span>
           <strong id="readyCount">0</strong>
         </div>
         <div class="metric">
-          <span>Synchronizovano</span>
+          <span>Tracky s daty</span>
           <strong id="syncedCount">0</strong>
         </div>
         <div class="metric warn">
-          <span>Chybi ISRC</span>
+          <span>ISRC coverage</span>
           <strong id="missingCount">0</strong>
         </div>
         <div class="metric">
@@ -75,7 +73,7 @@
               <option value="score">Score</option>
               <option value="streams">Streams/views</option>
               <option value="catalog">Katalog</option>
-              <option value="missing">Chybejici ISRC</option>
+              <option value="missing">ISRC coverage</option>
             </select>
           </div>
           <div class="table-wrap">
@@ -120,17 +118,14 @@
 
         <div class="panel span-4">
           <div class="panel-head">
-            <h2>Sync log</h2>
+            <h2>Executive highlights</h2>
           </div>
-          <div class="progress">
-            <div id="progressBar"></div>
-          </div>
-          <ul id="syncLog" class="log"></ul>
+          <div class="highlight-list" id="highlightList"></div>
         </div>
 
         <div class="panel span-4">
           <div class="panel-head">
-            <h2>Katalog</h2>
+            <h2>Release catalog</h2>
           </div>
           <div class="release-list" id="releaseList"></div>
         </div>
@@ -140,4 +135,3 @@
     <script src="./app.js" type="module"></script>
   </body>
 </html>
-

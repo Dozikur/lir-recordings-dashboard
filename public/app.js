@@ -7,6 +7,21 @@
   statusTimer: null,
 };
 
+const lirCoverOverrides = {
+  LIR027: "https://i1.sndcdn.com/artworks-03P8Cbo4DR68jxFk-yoSTyw-t500x500.jpg",
+  GB2LD2610218: "https://i1.sndcdn.com/artworks-03P8Cbo4DR68jxFk-yoSTyw-t500x500.jpg",
+  LIR022: "https://i1.sndcdn.com/artworks-XHkUDSGd61O44d3r-CyyMkg-t500x500.jpg",
+  GB2LD2610071: "https://i1.sndcdn.com/artworks-XHkUDSGd61O44d3r-CyyMkg-t500x500.jpg",
+  LIR021: "https://i1.sndcdn.com/artworks-dM1gSdmp96mwxKFA-Aw5hhg-t500x500.jpg",
+  GB2LD2610061: "https://i1.sndcdn.com/artworks-dM1gSdmp96mwxKFA-Aw5hhg-t500x500.jpg",
+  LIR023: "https://i1.sndcdn.com/artworks-wgAsvBRzyooRF65z-O64z2Q-t500x500.jpg",
+  GB2LD2610129: "https://i1.sndcdn.com/artworks-wgAsvBRzyooRF65z-O64z2Q-t500x500.jpg",
+  LIREP025: "https://i1.sndcdn.com/artworks-zul8tfk1qUnmjGbT-6qgX6w-t500x500.png",
+  GB2LD2610145: "https://i1.sndcdn.com/artworks-zul8tfk1qUnmjGbT-6qgX6w-t500x500.png",
+  GB2LD2610146: "https://i1.sndcdn.com/artworks-zul8tfk1qUnmjGbT-6qgX6w-t500x500.png",
+  GB2LD2610147: "https://i1.sndcdn.com/artworks-zul8tfk1qUnmjGbT-6qgX6w-t500x500.png",
+};
+
 const els = {
   syncLine: document.querySelector("#syncLine"),
   syncButton: document.querySelector("#syncButton"),
@@ -27,6 +42,7 @@ const els = {
   radioTotal: document.querySelector("#radioTotal"),
   progressBar: document.querySelector("#progressBar"),
   syncLog: document.querySelector("#syncLog"),
+  highlightList: document.querySelector("#highlightList"),
   releaseList: document.querySelector("#releaseList"),
   heroCover: document.querySelector("#heroCover"),
   heroTitle: document.querySelector("#heroTitle"),
@@ -66,7 +82,7 @@ async function refreshAll() {
   state.cache = withFallbackCache(cache, catalog);
   if (state.config.staticMode) {
     els.syncButton.disabled = false;
-    els.syncButton.querySelector("span:last-child").textContent = "Spustit update";
+    els.syncButton.querySelector("span:last-child").textContent = "Update data";
     els.autoButton.disabled = true;
   }
   render();
@@ -133,6 +149,7 @@ function render() {
   renderRows(state.cache.tracks);
   renderTotals(summary.totals || {});
   renderChart(state.cache.tracks);
+  renderHighlights(summary, state.cache.tracks);
   renderReleases();
 }
 
@@ -141,20 +158,17 @@ function renderBanner() {
   els.authBanner.textContent = "";
 
   if (state.config?.staticMode) {
-    els.authBanner.className = "banner";
-    els.authBanner.textContent = "Staticky dashboard z GitHub Pages. Data se obnovuji pres GitHub Actions.";
     return;
   }
 
   if (!state.config?.authConfigured) {
     els.authBanner.className = "banner";
-    els.authBanner.textContent =
-      "Soundcharts prihlaseni neni nastavene. Dopln .env podle .env.example a restartuj dashboard.";
+    els.authBanner.textContent = "Datovy zdroj neni pripraveny. Dashboard zatim zobrazuje posledni ulozeny snapshot.";
     return;
   }
   if (state.cache?.source === "empty" || !state.cache?.updatedAt) {
     els.authBanner.className = "banner";
-    els.authBanner.textContent = "Credentials jsou nastavene. Klikni na Aktualizovat pro prvni synchronizaci.";
+    els.authBanner.textContent = "Zatim neni ulozeny zadny snapshot. Spust rucni aktualizaci dat.";
   }
 }
 
@@ -162,11 +176,12 @@ function renderSummary(summary) {
   els.releaseCount.textContent = number(summary.releases);
   els.readyCount.textContent = number(summary.readyForApi);
   els.syncedCount.textContent = number(summary.synced);
-  els.missingCount.textContent = number(summary.needsIsrc);
+  const totalTracks = state.cache?.tracks?.length || summary.readyForApi || 0;
+  const isrcCoverage = totalTracks ? ((totalTracks - summary.needsIsrc) / totalTracks) * 100 : 0;
+  els.missingCount.textContent = `${decimal(isrcCoverage)} %`;
   els.averageScore.textContent = decimal(summary.averageScore);
-  const updated = state.cache?.updatedAt ? formatDateTime(state.cache.updatedAt) : "zatim bez synchronizace";
-  const auth = state.config?.authMode === "not_configured" ? "bez API" : state.config?.authMode;
-  els.syncLine.textContent = `Stav: ${auth} / posledni update: ${updated}`;
+  const updated = state.cache?.updatedAt ? formatDateTime(state.cache.updatedAt) : "bez ulozeneho snapshotu";
+  els.syncLine.textContent = `Last updated: ${updated} / manual refresh`;
 }
 
 function renderRows(inputTracks) {
@@ -179,8 +194,9 @@ function renderRows(inputTracks) {
       const isrc = isMissing
         ? '<span class="pill missing">chybi ISRC</span>'
         : `<span class="pill ${status}">${escapeHtml(track.isrc)}</span>`;
-      const cover = track.imageUrl
-        ? `<img class="track-cover" src="${escapeHtml(track.imageUrl)}" alt="" loading="lazy" />`
+      const coverUrl = coverForTrack(track);
+      const cover = coverUrl
+        ? `<img class="track-cover" src="${escapeHtml(coverUrl)}" alt="" loading="lazy" />`
         : '<span class="track-cover track-cover-fallback"></span>';
       return `<tr>
         <td>${escapeHtml(track.catalogId || "")}</td>
@@ -205,16 +221,21 @@ function renderHero(tracks) {
     .sort((a, b) => (streamTotal(b) || b.score || 0) - (streamTotal(a) || a.score || 0))[0];
   if (!top) return;
 
-  if (top.imageUrl) {
-    els.heroCover.innerHTML = `<img src="${escapeHtml(top.imageUrl)}" alt="" />`;
+  const coverUrl = coverForTrack(top);
+  if (coverUrl) {
+    els.heroCover.innerHTML = `<img src="${escapeHtml(coverUrl)}" alt="" />`;
   } else {
     els.heroCover.textContent = top.catalogId || "LIR";
   }
   els.heroTitle.textContent = top.track || top.release || "Top track";
-  els.heroMeta.textContent = `${top.artist || "Unknown artist"} / ${top.catalogId || ""} / ${top.isrc || ""}`;
+  els.heroMeta.textContent = `${top.artist || "Unknown artist"} / ${top.catalogId || ""}`;
   els.heroSpotify.textContent = number(top.stats?.spotifyStreams);
   els.heroPlaylist.textContent = number(top.stats?.playlistReach);
   els.heroScore.textContent = decimal(top.score || 0);
+}
+
+function coverForTrack(track) {
+  return lirCoverOverrides[track.isrc] || lirCoverOverrides[track.catalogId] || track.imageUrl || "";
 }
 
 function sortTracks(tracks) {
@@ -268,12 +289,12 @@ function renderChart(tracks) {
   const maxBar = width - left - right;
 
   ctx.font = "12px Aptos, Arial";
-  ctx.fillStyle = "#64748b";
+  ctx.fillStyle = "#a8b9dc";
   ctx.fillText("0", left, height - 20);
   ctx.fillText("100", width - right - 24, height - 20);
 
   if (!top.length) {
-    ctx.fillStyle = "#64748b";
+    ctx.fillStyle = "#a8b9dc";
     ctx.fillText("Zatim nejsou zadna track data.", 18, 40);
     return;
   }
@@ -281,15 +302,15 @@ function renderChart(tracks) {
   top.forEach((track, index) => {
     const y = topPad + index * row;
     const score = Math.max(0, Math.min(100, track.score || 0));
-    ctx.fillStyle = "#1f2937";
+    ctx.fillStyle = "#c8d7f7";
     ctx.fillText(trim(track.track, 18), 14, y + 17);
-    ctx.fillStyle = "#e8f1f7";
+    ctx.fillStyle = "rgba(200, 215, 247, 0.18)";
     roundRect(ctx, left, y, maxBar, 18, 4);
     ctx.fill();
-    ctx.fillStyle = score > 0 ? "#0f766e" : "#b7c2cf";
+    ctx.fillStyle = score > 0 ? "#26d2b4" : "#7890bf";
     roundRect(ctx, left, y, (score / 100) * maxBar, 18, 4);
     ctx.fill();
-    ctx.fillStyle = "#1f2937";
+    ctx.fillStyle = "#f7fbff";
     ctx.fillText(decimal(score), left + Math.min(maxBar - 30, (score / 100) * maxBar + 8), y + 14);
   });
 }
@@ -315,7 +336,7 @@ function renderReleases() {
     .map((release) => {
       const label = release.status === "verified" ? "ISRC OK" : release.status === "needs_isrc" ? "vice tracku" : "overit";
       const releaseTracks = tracksByRelease.get(release.catalogId) || [];
-      const cover = releaseTracks.find((track) => track.imageUrl)?.imageUrl || "";
+      const cover = lirCoverOverrides[release.catalogId] || coverForTrack(releaseTracks.find((track) => coverForTrack(track)) || {}) || "";
       const releaseScore = releaseTracks.reduce((sum, track) => sum + Number(track.score || 0), 0);
       const spotify = releaseTracks.reduce((sum, track) => sum + Number(track.stats?.spotifyStreams || 0), 0);
       const coverHtml = cover
@@ -334,9 +355,42 @@ function renderReleases() {
     .join("");
 }
 
+function renderHighlights(summary, tracks) {
+  if (!els.highlightList) return;
+  const topSpotify = [...tracks].sort((a, b) => (b.stats?.spotifyStreams || 0) - (a.stats?.spotifyStreams || 0))[0];
+  const topPlaylist = [...tracks].sort((a, b) => (b.stats?.playlistReach || 0) - (a.stats?.playlistReach || 0))[0];
+  const activeTracks = tracks.filter((track) => track.ok).length;
+  const highlights = [
+    {
+      label: "Catalog coverage",
+      value: `${number(activeTracks)} / ${number(tracks.length)} tracks`,
+      detail: `${number(summary.releases)} releasu v reportu`,
+    },
+    {
+      label: "Spotify leader",
+      value: topSpotify?.track || "N/A",
+      detail: `${number(topSpotify?.stats?.spotifyStreams)} streams`,
+    },
+    {
+      label: "Playlist reach leader",
+      value: topPlaylist?.track || "N/A",
+      detail: `${number(topPlaylist?.stats?.playlistReach)} reach`,
+    },
+  ];
+  els.highlightList.innerHTML = highlights
+    .map(
+      (item) => `<div class="highlight-item">
+        <span>${escapeHtml(item.label)}</span>
+        <strong>${escapeHtml(item.value)}</strong>
+        <small>${escapeHtml(item.detail)}</small>
+      </div>`
+    )
+    .join("");
+}
+
 function renderStatus(status) {
   const percent = status.total ? Math.round((status.progress / status.total) * 100) : 0;
-  els.progressBar.style.width = `${percent}%`;
+  if (els.progressBar) els.progressBar.style.width = `${percent}%`;
   if (status.running) {
     els.syncButton.disabled = true;
     setLog([`${status.message} ${status.progress}/${status.total}`, ...status.errors.slice(-4)]);
@@ -347,16 +401,19 @@ function renderStatus(status) {
 }
 
 function clearLog() {
+  if (!els.syncLog) return;
   els.syncLog.innerHTML = "";
 }
 
 function appendLog(message) {
+  if (!els.syncLog) return;
   const li = document.createElement("li");
   li.textContent = message;
   els.syncLog.prepend(li);
 }
 
 function setLog(messages) {
+  if (!els.syncLog) return;
   els.syncLog.innerHTML = messages.map((message) => `<li>${escapeHtml(message)}</li>`).join("");
 }
 

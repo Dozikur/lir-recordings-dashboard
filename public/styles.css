@@ -129,6 +129,11 @@ button {
   font-weight: 800;
 }
 
+button span[aria-hidden="true"] {
+  color: #c9d8f7;
+  font-size: 12px;
+}
+
 button.primary {
   background: #106f63;
   border-color: #178b7c;
@@ -406,6 +411,37 @@ canvas {
 .totals strong {
   color: var(--ink);
   font-size: 18px;
+}
+
+.highlight-list {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+.highlight-item {
+  min-height: 78px;
+  padding: 13px 14px;
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  background: rgba(16, 35, 70, 0.82);
+}
+
+.highlight-item span,
+.highlight-item small {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.highlight-item strong {
+  display: block;
+  overflow: hidden;
+  margin: 6px 0 4px;
+  color: var(--ink);
+  font-size: 18px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .progress {
