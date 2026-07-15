@@ -8,23 +8,40 @@
   </head>
   <body>
     <header class="topbar">
-      <div>
-        <h1>Let It Roll Recordings</h1>
-        <p id="syncLine">Nacitam dashboard...</p>
+      <div class="brand-lockup">
+        <div id="heroCover" class="hero-cover" aria-hidden="true">LIR</div>
+        <div>
+          <p class="eyebrow">Label dashboard</p>
+          <h1>Let It Roll Recordings</h1>
+          <p id="syncLine">Nacitam dashboard...</p>
+        </div>
       </div>
       <div class="actions">
-        <button id="syncButton" class="primary" type="button" title="Aktualizovat data">
+        <button id="syncButton" class="primary" type="button" title="Otevrit GitHub Actions">
           <span aria-hidden="true">↻</span>
-          <span>Aktualizovat</span>
+          <span>Otevrit workflow</span>
         </button>
-        <button id="autoButton" type="button" title="Automaticka aktualizace">
-          <span aria-hidden="true">◷</span>
-          <span>Auto</span>
+        <button id="autoButton" type="button" title="API sync je vypnuty pro design mode">
+          <span aria-hidden="true">●</span>
+          <span>API off</span>
         </button>
       </div>
     </header>
 
     <main>
+      <section class="hero-panel">
+        <div>
+          <span class="section-kicker">Top performance</span>
+          <h2 id="heroTitle">Nacitam top track...</h2>
+          <p id="heroMeta">Posledni publikovana cache, bez automatickeho API syncu.</p>
+        </div>
+        <div class="hero-stats">
+          <div><span>Spotify</span><strong id="heroSpotify">0</strong></div>
+          <div><span>Playlist reach</span><strong id="heroPlaylist">0</strong></div>
+          <div><span>Score</span><strong id="heroScore">0,0</strong></div>
+        </div>
+      </section>
+
       <section class="status-strip" aria-label="Stav">
         <div class="metric">
           <span>Releasy</span>
@@ -123,3 +140,4 @@
     <script src="./app.js" type="module"></script>
   </body>
 </html>
+

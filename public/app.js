@@ -28,6 +28,12 @@ const els = {
   progressBar: document.querySelector("#progressBar"),
   syncLog: document.querySelector("#syncLog"),
   releaseList: document.querySelector("#releaseList"),
+  heroCover: document.querySelector("#heroCover"),
+  heroTitle: document.querySelector("#heroTitle"),
+  heroMeta: document.querySelector("#heroMeta"),
+  heroSpotify: document.querySelector("#heroSpotify"),
+  heroPlaylist: document.querySelector("#heroPlaylist"),
+  heroScore: document.querySelector("#heroScore"),
 };
 
 els.syncButton.addEventListener("click", syncNow);
@@ -123,6 +129,7 @@ function render() {
   const summary = state.cache.summary || summarizeLocal(state.cache.tracks, state.catalog.releases);
   renderBanner();
   renderSummary(summary);
+  renderHero(state.cache.tracks);
   renderRows(state.cache.tracks);
   renderTotals(summary.totals || {});
   renderChart(state.cache.tracks);
@@ -159,7 +166,7 @@ function renderSummary(summary) {
   els.averageScore.textContent = decimal(summary.averageScore);
   const updated = state.cache?.updatedAt ? formatDateTime(state.cache.updatedAt) : "zatim bez synchronizace";
   const auth = state.config?.authMode === "not_configured" ? "bez API" : state.config?.authMode;
-  els.syncLine.textContent = `Stav: ${auth} Â· posledni update: ${updated}`;
+  els.syncLine.textContent = `Stav: ${auth} / posledni update: ${updated}`;
 }
 
 function renderRows(inputTracks) {
@@ -172,9 +179,14 @@ function renderRows(inputTracks) {
       const isrc = isMissing
         ? '<span class="pill missing">chybi ISRC</span>'
         : `<span class="pill ${status}">${escapeHtml(track.isrc)}</span>`;
+      const cover = track.imageUrl
+        ? `<img class="track-cover" src="${escapeHtml(track.imageUrl)}" alt="" loading="lazy" />`
+        : '<span class="track-cover track-cover-fallback"></span>';
       return `<tr>
         <td>${escapeHtml(track.catalogId || "")}</td>
-        <td title="${escapeHtml(track.release || "")}">${escapeHtml(track.track || "")}</td>
+        <td title="${escapeHtml(track.release || "")}">
+          <div class="track-cell">${cover}<span>${escapeHtml(track.track || "")}</span></div>
+        </td>
         <td>${isrc}</td>
         <td title="${escapeHtml(track.label || "")}">${escapeHtml(track.artist || "")}</td>
         <td class="num">${number(stats.spotifyStreams)}</td>
@@ -185,6 +197,24 @@ function renderRows(inputTracks) {
       </tr>`;
     })
     .join("");
+}
+
+function renderHero(tracks) {
+  const top = [...tracks]
+    .filter((track) => track.ok)
+    .sort((a, b) => (streamTotal(b) || b.score || 0) - (streamTotal(a) || a.score || 0))[0];
+  if (!top) return;
+
+  if (top.imageUrl) {
+    els.heroCover.innerHTML = `<img src="${escapeHtml(top.imageUrl)}" alt="" />`;
+  } else {
+    els.heroCover.textContent = top.catalogId || "LIR";
+  }
+  els.heroTitle.textContent = top.track || top.release || "Top track";
+  els.heroMeta.textContent = `${top.artist || "Unknown artist"} / ${top.catalogId || ""} / ${top.isrc || ""}`;
+  els.heroSpotify.textContent = number(top.stats?.spotifyStreams);
+  els.heroPlaylist.textContent = number(top.stats?.playlistReach);
+  els.heroScore.textContent = decimal(top.score || 0);
 }
 
 function sortTracks(tracks) {
