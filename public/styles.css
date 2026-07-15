@@ -444,30 +444,6 @@ canvas {
   white-space: nowrap;
 }
 
-.progress {
-  height: 8px;
-  margin: 14px;
-  overflow: hidden;
-  border-radius: 999px;
-  background: #0e2143;
-}
-
-#progressBar {
-  width: 0;
-  height: 100%;
-  background: var(--teal);
-  transition: width 0.25s ease;
-}
-
-.log {
-  max-height: 166px;
-  margin: 0;
-  overflow: auto;
-  padding: 0 14px 14px 32px;
-  color: var(--muted);
-  line-height: 1.45;
-}
-
 .release-list {
   display: grid;
   grid-template-columns: 1fr;

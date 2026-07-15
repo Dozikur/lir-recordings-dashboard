@@ -40,8 +40,6 @@ const els = {
   soundcloudTotal: document.querySelector("#soundcloudTotal"),
   playlistTotal: document.querySelector("#playlistTotal"),
   radioTotal: document.querySelector("#radioTotal"),
-  progressBar: document.querySelector("#progressBar"),
-  syncLog: document.querySelector("#syncLog"),
   highlightList: document.querySelector("#highlightList"),
   releaseList: document.querySelector("#releaseList"),
   heroCover: document.querySelector("#heroCover"),
@@ -112,19 +110,15 @@ async function refreshStatus() {
 
 async function syncNow() {
   if (state.config?.staticMode) {
-    clearLog();
-    appendLog("Oteviram GitHub Actions. Tam klikni na Run workflow.");
     window.open("https://github.com/Dozikur/lir-recordings-dashboard/actions/workflows/dashboard-pages.yml", "_blank");
     return;
   }
   els.syncButton.disabled = true;
-  clearLog();
-  appendLog("Synchronizace spustena.");
   const response = await fetch("/api/sync", { method: "POST" });
   const body = await response.json().catch(() => ({}));
   if (!response.ok) {
     els.syncButton.disabled = false;
-    appendLog(body.message || body.error || "Synchronizaci se nepodarilo spustit.");
+    showBanner(body.message || body.error || "Synchronizaci se nepodarilo spustit.", true);
   }
 }
 
@@ -170,6 +164,11 @@ function renderBanner() {
     els.authBanner.className = "banner";
     els.authBanner.textContent = "Zatim neni ulozeny zadny snapshot. Spust rucni aktualizaci dat.";
   }
+}
+
+function showBanner(message, isError = false) {
+  els.authBanner.className = isError ? "banner error" : "banner";
+  els.authBanner.textContent = message;
 }
 
 function renderSummary(summary) {
@@ -389,32 +388,11 @@ function renderHighlights(summary, tracks) {
 }
 
 function renderStatus(status) {
-  const percent = status.total ? Math.round((status.progress / status.total) * 100) : 0;
-  if (els.progressBar) els.progressBar.style.width = `${percent}%`;
   if (status.running) {
     els.syncButton.disabled = true;
-    setLog([`${status.message} ${status.progress}/${status.total}`, ...status.errors.slice(-4)]);
   } else {
     if (!state.config?.running) els.syncButton.disabled = false;
-    if (status.finishedAt) setLog([status.message, ...status.errors.slice(-4)]);
   }
-}
-
-function clearLog() {
-  if (!els.syncLog) return;
-  els.syncLog.innerHTML = "";
-}
-
-function appendLog(message) {
-  if (!els.syncLog) return;
-  const li = document.createElement("li");
-  li.textContent = message;
-  els.syncLog.prepend(li);
-}
-
-function setLog(messages) {
-  if (!els.syncLog) return;
-  els.syncLog.innerHTML = messages.map((message) => `<li>${escapeHtml(message)}</li>`).join("");
 }
 
 function withFallbackCache(cache, catalog) {
