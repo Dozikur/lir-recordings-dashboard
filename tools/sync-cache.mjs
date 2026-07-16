@@ -105,8 +105,9 @@ async function fetchTrack(track) {
   if (!song?.uuid) throw new Error("Soundcharts nevratil UUID.");
 
   const encodedUuid = encodeURIComponent(song.uuid);
-  const [spotifyAudience, spotifyPopularity, spotifyPlaylistReach, radioSpins] = await Promise.all([
+  const [spotifyAudience, youtubeStreaming, spotifyPopularity, spotifyPlaylistReach, radioSpins] = await Promise.all([
     soundchartsOptional(`/api/v2/song/${encodedUuid}/audience/spotify?limit=30&sort=desc`),
+    soundchartsOptional(`/api/v2/song/${encodedUuid}/streaming/youtube?limit=1&sort=desc`),
     soundchartsOptional(`/api/v2/song/${encodedUuid}/popularity/spotify?limit=1&sort=desc`),
     soundchartsOptional(`/api/v2/song/${encodedUuid}/playlist/reach/spotify?limit=1&sort=desc&type=all`),
     soundchartsOptional(`/api/v2/song/${encodedUuid}/broadcasts?limit=100`),
@@ -115,6 +116,7 @@ async function fetchTrack(track) {
   const stats = {
     ...zeroStats,
     spotifyStreams: latestPlotValue(spotifyAudience),
+    youtubeViews: latestPlotValue(youtubeStreaming),
     playlistReach: latestValue(spotifyPlaylistReach, "playlistReach"),
     playlistCount: latestValue(spotifyPlaylistReach, "playlistCount"),
     radioSpins: itemCount(radioSpins),

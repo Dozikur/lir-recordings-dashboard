@@ -31,24 +31,22 @@ const els = {
   releaseCount: document.querySelector("#releaseCount"),
   readyCount: document.querySelector("#readyCount"),
   syncedCount: document.querySelector("#syncedCount"),
-  missingCount: document.querySelector("#missingCount"),
-  averageScore: document.querySelector("#averageScore"),
   trackRows: document.querySelector("#trackRows"),
   sortSelect: document.querySelector("#sortSelect"),
-  scoreChart: document.querySelector("#scoreChart"),
+  topScoreList: document.querySelector("#topScoreList"),
   spotifyTotal: document.querySelector("#spotifyTotal"),
   youtubeTotal: document.querySelector("#youtubeTotal"),
   soundcloudTotal: document.querySelector("#soundcloudTotal"),
   playlistTotal: document.querySelector("#playlistTotal"),
   radioTotal: document.querySelector("#radioTotal"),
-  highlightList: document.querySelector("#highlightList"),
   releaseList: document.querySelector("#releaseList"),
   heroCover: document.querySelector("#heroCover"),
   heroTitle: document.querySelector("#heroTitle"),
   heroMeta: document.querySelector("#heroMeta"),
   heroSpotify: document.querySelector("#heroSpotify"),
+  heroYoutube: document.querySelector("#heroYoutube"),
+  heroSoundcloud: document.querySelector("#heroSoundcloud"),
   heroPlaylist: document.querySelector("#heroPlaylist"),
-  heroScore: document.querySelector("#heroScore"),
   topTracksPeriod: document.querySelector("#topTracksPeriod"),
   trendingPeriod: document.querySelector("#trendingPeriod"),
   playlistPeriod: document.querySelector("#playlistPeriod"),
@@ -151,8 +149,7 @@ function render() {
   renderHero(state.cache.tracks);
   renderRows(state.cache.tracks);
   renderTotals(summary.totals || {});
-  renderChart(state.cache.tracks);
-  renderHighlights(summary, state.cache.tracks);
+  renderTopScore(state.cache.tracks);
   renderExternalInsights(state.external, state.cache.tracks);
   renderReleases();
 }
@@ -185,10 +182,6 @@ function renderSummary(summary) {
   els.releaseCount.textContent = number(summary.releases);
   els.readyCount.textContent = number(summary.readyForApi);
   els.syncedCount.textContent = number(summary.synced);
-  const totalTracks = state.cache?.tracks?.length || summary.readyForApi || 0;
-  const isrcCoverage = totalTracks ? ((totalTracks - summary.needsIsrc) / totalTracks) * 100 : 0;
-  els.missingCount.textContent = `${decimal(isrcCoverage)} %`;
-  els.averageScore.textContent = decimal(summary.averageScore);
   const updated = state.cache?.updatedAt ? formatDateTime(state.cache.updatedAt) : "bez ulozeneho snapshotu";
   els.syncLine.textContent = `Last updated: ${updated} / manual refresh`;
 }
@@ -216,6 +209,7 @@ function renderRows(inputTracks) {
         <td title="${escapeHtml(track.label || "")}">${escapeHtml(track.artist || "")}</td>
         <td class="num">${number(stats.spotifyStreams)}</td>
         <td class="num">${number(stats.youtubeViews)}</td>
+        <td class="num">${number(stats.soundcloudPlays)}</td>
         <td class="num">${number(stats.playlistReach)}</td>
         <td class="num">${number(stats.radioSpins)}</td>
         <td class="num"><strong>${decimal(track.score || 0)}</strong></td>
@@ -239,8 +233,9 @@ function renderHero(tracks) {
   els.heroTitle.textContent = top.track || top.release || "Top track";
   els.heroMeta.textContent = `${top.artist || "Unknown artist"} / ${top.catalogId || ""}`;
   els.heroSpotify.textContent = number(top.stats?.spotifyStreams);
+  els.heroYoutube.textContent = number(top.stats?.youtubeViews);
+  els.heroSoundcloud.textContent = number(top.stats?.soundcloudPlays);
   els.heroPlaylist.textContent = number(top.stats?.playlistReach);
-  els.heroScore.textContent = decimal(top.score || 0);
 }
 
 function coverForTrack(track) {
@@ -274,64 +269,37 @@ function renderTotals(totals) {
   els.radioTotal.textContent = number(totals.radioSpins);
 }
 
-function renderChart(tracks) {
-  const canvas = els.scoreChart;
-  const ctx = canvas.getContext("2d");
-  const dpr = window.devicePixelRatio || 1;
-  const rect = canvas.getBoundingClientRect();
-  canvas.width = Math.max(520, Math.floor(rect.width * dpr));
-  canvas.height = Math.floor(320 * dpr);
-  ctx.scale(dpr, dpr);
-  ctx.clearRect(0, 0, rect.width, 320);
-
+function renderTopScore(tracks) {
   const top = tracks
     .filter((track) => track.isrc)
     .sort((a, b) => (b.score || 0) - (a.score || 0))
     .slice(0, 7);
 
-  const width = rect.width;
-  const height = 320;
-  const left = 132;
-  const right = 18;
-  const topPad = 24;
-  const row = 35;
-  const maxBar = width - left - right;
-
-  ctx.font = "12px Aptos, Arial";
-  ctx.fillStyle = "#a8b9dc";
-  ctx.fillText("0", left, height - 20);
-  ctx.fillText("100", width - right - 24, height - 20);
-
   if (!top.length) {
-    ctx.fillStyle = "#a8b9dc";
-    ctx.fillText("Zatim nejsou zadna track data.", 18, 40);
+    els.topScoreList.innerHTML = `<div class="empty-state">Zatim nejsou zadna track data.</div>`;
     return;
   }
 
-  top.forEach((track, index) => {
-    const y = topPad + index * row;
-    const score = Math.max(0, Math.min(100, track.score || 0));
-    ctx.fillStyle = "#c8d7f7";
-    ctx.fillText(trim(track.track, 18), 14, y + 17);
-    ctx.fillStyle = "rgba(200, 215, 247, 0.18)";
-    roundRect(ctx, left, y, maxBar, 18, 4);
-    ctx.fill();
-    ctx.fillStyle = score > 0 ? "#26d2b4" : "#7890bf";
-    roundRect(ctx, left, y, (score / 100) * maxBar, 18, 4);
-    ctx.fill();
-    ctx.fillStyle = "#f7fbff";
-    ctx.fillText(decimal(score), left + Math.min(maxBar - 30, (score / 100) * maxBar + 8), y + 14);
-  });
-}
-
-function roundRect(ctx, x, y, width, height, radius) {
-  ctx.beginPath();
-  ctx.moveTo(x + radius, y);
-  ctx.arcTo(x + width, y, x + width, y + height, radius);
-  ctx.arcTo(x + width, y + height, x, y + height, radius);
-  ctx.arcTo(x, y + height, x, y, radius);
-  ctx.arcTo(x, y, x + width, y, radius);
-  ctx.closePath();
+  els.topScoreList.innerHTML = `${top
+    .map((track, index) => {
+      const score = Math.max(0, Math.min(100, track.score || 0));
+      const coverUrl = coverForTrack(track);
+      const cover = coverUrl
+        ? `<img class="score-cover" src="${escapeHtml(coverUrl)}" alt="" loading="lazy" />`
+        : '<span class="score-cover score-cover-fallback"></span>';
+      return `<div class="score-row">
+        <span class="rank">${number(index + 1)}</span>
+        ${cover}
+        <div class="score-copy">
+          <strong>${escapeHtml(track.track || "")}</strong>
+          <span>${escapeHtml(track.artist || track.release || "")}</span>
+          <div class="score-bar" aria-hidden="true"><span style="width: ${score}%"></span></div>
+        </div>
+        <strong class="score-value">${decimal(score)}</strong>
+      </div>`;
+    })
+    .join("")}
+    <div class="score-axis"><span>0</span><span>100</span></div>`;
 }
 
 function renderReleases() {
@@ -435,39 +403,6 @@ function findTrackMatch(row, tracks) {
   return tracks.find((track) => normalize(track.track) === rowTrack) || tracks.find((track) => normalize(track.release) === rowRelease);
 }
 
-function renderHighlights(summary, tracks) {
-  if (!els.highlightList) return;
-  const topSpotify = [...tracks].sort((a, b) => (b.stats?.spotifyStreams || 0) - (a.stats?.spotifyStreams || 0))[0];
-  const topPlaylist = [...tracks].sort((a, b) => (b.stats?.playlistReach || 0) - (a.stats?.playlistReach || 0))[0];
-  const activeTracks = tracks.filter((track) => track.ok).length;
-  const highlights = [
-    {
-      label: "Catalog coverage",
-      value: `${number(activeTracks)} / ${number(tracks.length)} tracks`,
-      detail: `${number(summary.releases)} releasu v reportu`,
-    },
-    {
-      label: "Spotify leader",
-      value: topSpotify?.track || "N/A",
-      detail: `${number(topSpotify?.stats?.spotifyStreams)} streams`,
-    },
-    {
-      label: "Playlist reach leader",
-      value: topPlaylist?.track || "N/A",
-      detail: `${number(topPlaylist?.stats?.playlistReach)} reach`,
-    },
-  ];
-  els.highlightList.innerHTML = highlights
-    .map(
-      (item) => `<div class="highlight-item">
-        <span>${escapeHtml(item.label)}</span>
-        <strong>${escapeHtml(item.value)}</strong>
-        <small>${escapeHtml(item.detail)}</small>
-      </div>`
-    )
-    .join("");
-}
-
 function renderStatus(status) {
   if (status.running) {
     els.syncButton.disabled = true;
@@ -515,7 +450,6 @@ function summarizeLocal(tracks, releases) {
     synced: synced.length,
     needsIsrc: tracks.filter((track) => !track.isrc).length,
     totals,
-    averageScore: synced.length ? totals.score / synced.length : 0,
   };
 }
 

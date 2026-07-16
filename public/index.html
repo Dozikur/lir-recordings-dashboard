@@ -35,8 +35,9 @@
         </div>
         <div class="hero-stats">
           <div><span>Spotify</span><strong id="heroSpotify">0</strong></div>
+          <div><span>YouTube</span><strong id="heroYoutube">0</strong></div>
+          <div><span>SoundCloud</span><strong id="heroSoundcloud">0</strong></div>
           <div><span>Playlist reach</span><strong id="heroPlaylist">0</strong></div>
-          <div><span>Score</span><strong id="heroScore">0,0</strong></div>
         </div>
       </section>
 
@@ -52,14 +53,6 @@
         <div class="metric">
           <span>Tracky s daty</span>
           <strong id="syncedCount">0</strong>
-        </div>
-        <div class="metric warn">
-          <span>ISRC coverage</span>
-          <strong id="missingCount">0</strong>
-        </div>
-        <div class="metric">
-          <span>Prumer score</span>
-          <strong id="averageScore">0.0</strong>
         </div>
       </section>
 
@@ -103,7 +96,6 @@
               <option value="score">Score</option>
               <option value="streams">Streams/views</option>
               <option value="catalog">Katalog</option>
-              <option value="missing">ISRC coverage</option>
             </select>
           </div>
           <div class="table-wrap">
@@ -116,6 +108,7 @@
                   <th>Artist</th>
                   <th>Spotify</th>
                   <th>YouTube</th>
+                  <th>SoundCloud</th>
                   <th>Playlist reach</th>
                   <th>Radio</th>
                   <th>Score</th>
@@ -130,7 +123,14 @@
           <div class="panel-head">
             <h2>Top score</h2>
           </div>
-          <canvas id="scoreChart" width="520" height="320"></canvas>
+          <div class="score-list" id="topScoreList"></div>
+        </div>
+
+        <div class="panel span-4">
+          <div class="panel-head">
+            <h2>Release catalog</h2>
+          </div>
+          <div class="release-list" id="releaseList"></div>
         </div>
 
         <div class="panel span-4">
@@ -144,20 +144,6 @@
             <div><span>Playlist reach</span><strong id="playlistTotal">0</strong></div>
             <div><span>Radio spins</span><strong id="radioTotal">0</strong></div>
           </div>
-        </div>
-
-        <div class="panel span-4">
-          <div class="panel-head">
-            <h2>Executive highlights</h2>
-          </div>
-          <div class="highlight-list" id="highlightList"></div>
-        </div>
-
-        <div class="panel span-4">
-          <div class="panel-head">
-            <h2>Release catalog</h2>
-          </div>
-          <div class="release-list" id="releaseList"></div>
         </div>
       </section>
     </main>
