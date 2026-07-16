@@ -6,9 +6,12 @@ const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const env = await loadEnv(path.join(root, ".env"));
 normalizeEnvSecrets();
 const catalog = JSON.parse(await fs.readFile(path.join(root, "data", "catalog.json"), "utf8"));
+const soundcloudLinks = await loadOptionalJson(path.join(root, "data", "soundcloud-links.json"), {});
 assertAuthConfigured();
 console.log(
-  `Soundcharts auth mode: ${env.SOUNDCHARTS_ACCESS_TOKEN ? "access_token" : "legacy_headers"}; app id length: ${
+  `Soundcharts auth mode: ${env.SOUNDCHARTS_ACCESS_TOKEN ? "access_token" : "legacy_headers"}; SoundCloud: ${
+    soundcloudConfigured() ? "configured" : "not configured"
+  }; app id length: ${
     env.SOUNDCHARTS_APP_ID?.length || 0
   }; api key length: ${env.SOUNDCHARTS_API_KEY?.length || 0}`
 );
@@ -90,7 +93,7 @@ console.log(
 
 async function loadEnv(filePath) {
   const values = {};
-  const text = await fs.readFile(filePath, "utf8");
+  const text = await fs.readFile(filePath, "utf8").catch(() => "");
   for (const line of text.split(/\r?\n/)) {
     const trimmed = line.trim();
     if (!trimmed || trimmed.startsWith("#") || !trimmed.includes("=")) continue;
@@ -100,23 +103,34 @@ async function loadEnv(filePath) {
   return values;
 }
 
+async function loadOptionalJson(filePath, fallback) {
+  try {
+    return JSON.parse(await fs.readFile(filePath, "utf8"));
+  } catch {
+    return fallback;
+  }
+}
+
 async function fetchTrack(track) {
   const song = unwrapObject(await soundcharts(`/api/v2.25/song/by-isrc/${encodeURIComponent(track.isrc)}`));
   if (!song?.uuid) throw new Error("Soundcharts nevratil UUID.");
 
   const encodedUuid = encodeURIComponent(song.uuid);
-  const [spotifyAudience, youtubeStreaming, spotifyPopularity, spotifyPlaylistReach, radioSpins] = await Promise.all([
+  const artist = artistNames(song);
+  const [spotifyAudience, youtubeStreaming, spotifyPopularity, spotifyPlaylistReach, radioSpins, soundcloudTrack] = await Promise.all([
     soundchartsOptional(`/api/v2/song/${encodedUuid}/audience/spotify?limit=30&sort=desc`),
     soundchartsOptional(`/api/v2/song/${encodedUuid}/streaming/youtube?limit=1&sort=desc`),
     soundchartsOptional(`/api/v2/song/${encodedUuid}/popularity/spotify?limit=1&sort=desc`),
     soundchartsOptional(`/api/v2/song/${encodedUuid}/playlist/reach/spotify?limit=1&sort=desc&type=all`),
     soundchartsOptional(`/api/v2/song/${encodedUuid}/broadcasts?limit=100`),
+    soundcloudConfigured() ? soundcloudTrackOptional(track, artist) : Promise.resolve(null),
   ]);
 
   const stats = {
     ...zeroStats,
     spotifyStreams: latestPlotValue(spotifyAudience),
     youtubeViews: latestPlotValue(youtubeStreaming),
+    soundcloudPlays: soundcloudTrack ? Number(soundcloudTrack.playback_count || 0) : 0,
     playlistReach: latestValue(spotifyPlaylistReach, "playlistReach"),
     playlistCount: latestValue(spotifyPlaylistReach, "playlistCount"),
     radioSpins: itemCount(radioSpins),
@@ -129,7 +143,10 @@ async function fetchTrack(track) {
     ok: true,
     uuid: song.uuid,
     soundchartsUrl: song.appUrl || "",
-    artist: artistNames(song),
+    soundcloudUrl: soundcloudTrack?.permalink_url || "",
+    soundcloudTitle: soundcloudTrack?.title || "",
+    soundcloudUser: soundcloudTrack?.user?.username || "",
+    artist,
     label: Array.isArray(song.labels) ? song.labels.map((label) => label.name).filter(Boolean).join(", ") : "",
     releaseDate: song.releaseDate ? String(song.releaseDate).slice(0, 10) : "",
     imageUrl: song.imageUrl || "",
@@ -162,6 +179,110 @@ async function soundchartsOptional(endpoint) {
   }
 }
 
+async function soundcloudTrackFor(track, artist) {
+  const linked = soundcloudLinks[track.isrc] || soundcloudLinks[track.catalogId];
+  if (linked) return soundcloudTrackFromLink(linked);
+
+  const query = [track.track, artist].filter(Boolean).join(" ");
+  const candidates = await soundcloudSearch(query);
+  return bestSoundcloudMatch(candidates, track, artist);
+}
+
+let soundcloudWarningLogged = false;
+
+async function soundcloudTrackOptional(track, artist) {
+  try {
+    return await soundcloudTrackFor(track, artist);
+  } catch (error) {
+    if (!soundcloudWarningLogged) {
+      console.warn(`SoundCloud enrichment skipped: ${error.message}`);
+      soundcloudWarningLogged = true;
+    }
+    return null;
+  }
+}
+
+async function soundcloudTrackFromLink(value) {
+  if (typeof value === "number" || /^\d+$/.test(String(value))) {
+    return soundcloud(`/tracks/${encodeURIComponent(String(value))}`);
+  }
+  return soundcloud(`/resolve?url=${encodeURIComponent(String(value))}`);
+}
+
+async function soundcloudSearch(query) {
+  const response = await soundcloud(`/tracks?q=${encodeURIComponent(query)}&limit=10&linked_partitioning=false`);
+  if (Array.isArray(response)) return response;
+  if (Array.isArray(response?.collection)) return response.collection;
+  return [];
+}
+
+function bestSoundcloudMatch(candidates, track, artist) {
+  const trackNeedle = normalize(track.track);
+  const artistTokens = normalize(artist).split(" ").filter((token) => token.length > 2);
+  const scored = candidates
+    .filter((candidate) => candidate?.kind === "track" || candidate?.title)
+    .map((candidate) => {
+      const title = normalize(candidate.title);
+      const user = normalize(candidate.user?.username);
+      const description = normalize(candidate.description);
+      const permalink = normalize(candidate.permalink_url);
+      let score = 0;
+      if (title === trackNeedle) score += 70;
+      else if (title.includes(trackNeedle) || trackNeedle.includes(title)) score += 45;
+      for (const token of artistTokens) {
+        if (title.includes(token)) score += 10;
+        if (user.includes(token)) score += 14;
+        if (description.includes(token) || permalink.includes(token)) score += 4;
+      }
+      return { candidate, score };
+    })
+    .sort((a, b) => b.score - a.score);
+
+  return scored[0]?.score >= 60 ? scored[0].candidate : null;
+}
+
+async function soundcloud(endpoint) {
+  const response = await fetch(`https://api.soundcloud.com${endpoint}`, {
+    headers: {
+      accept: "application/json; charset=utf-8",
+      Authorization: `OAuth ${await getSoundcloudAccessToken()}`,
+    },
+  });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const message = body?.message || body?.error || response.statusText;
+    throw new Error(`SoundCloud ${response.status}: ${message}`);
+  }
+  return body;
+}
+
+let soundcloudTokenPromise = null;
+
+async function getSoundcloudAccessToken() {
+  if (env.SOUNDCLOUD_ACCESS_TOKEN) return env.SOUNDCLOUD_ACCESS_TOKEN;
+  soundcloudTokenPromise ||= fetchSoundcloudAccessToken();
+  return soundcloudTokenPromise;
+}
+
+async function fetchSoundcloudAccessToken() {
+  const credentials = Buffer.from(`${env.SOUNDCLOUD_CLIENT_ID}:${env.SOUNDCLOUD_CLIENT_SECRET}`).toString("base64");
+  const response = await fetch("https://secure.soundcloud.com/oauth/token", {
+    method: "POST",
+    headers: {
+      accept: "application/json; charset=utf-8",
+      "content-type": "application/x-www-form-urlencoded",
+      Authorization: `Basic ${credentials}`,
+    },
+    body: new URLSearchParams({ grant_type: "client_credentials" }),
+  });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok || !body.access_token) {
+    const message = body?.message || body?.error || response.statusText;
+    throw new Error(`SoundCloud token ${response.status}: ${message}`);
+  }
+  return body.access_token;
+}
+
 function getBaseUrl() {
   return (env.SOUNDCHARTS_BASE_URL || "https://customer.api.soundcharts.com").replace(/\/$/, "");
 }
@@ -173,7 +294,14 @@ function assertAuthConfigured() {
 }
 
 function normalizeEnvSecrets() {
-  for (const key of ["SOUNDCHARTS_ACCESS_TOKEN", "SOUNDCHARTS_APP_ID", "SOUNDCHARTS_API_KEY"]) {
+  for (const key of [
+    "SOUNDCHARTS_ACCESS_TOKEN",
+    "SOUNDCHARTS_APP_ID",
+    "SOUNDCHARTS_API_KEY",
+    "SOUNDCLOUD_ACCESS_TOKEN",
+    "SOUNDCLOUD_CLIENT_ID",
+    "SOUNDCLOUD_CLIENT_SECRET",
+  ]) {
     if (!env[key]) continue;
     env[key] = env[key].trim().replace(/^["']|["']$/g, "");
     const assignmentPrefix = `${key}=`;
@@ -192,6 +320,10 @@ function getAuthHeaders() {
   throw new Error("Chybi Soundcharts credentials v .env.");
 }
 
+function soundcloudConfigured() {
+  return Boolean(env.SOUNDCLOUD_ACCESS_TOKEN || (env.SOUNDCLOUD_CLIENT_ID && env.SOUNDCLOUD_CLIENT_SECRET));
+}
+
 function unwrapObject(response) {
   return response?.object || response?.data || response;
 }
@@ -199,6 +331,15 @@ function unwrapObject(response) {
 function artistNames(song) {
   const artists = song?.mainArtists?.length ? song.mainArtists : song?.artists;
   return Array.isArray(artists) ? artists.map((artist) => artist.name).filter(Boolean).join(", ") : "";
+}
+
+function normalize(value) {
+  return String(value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
 }
 
 function latestPlotValue(response) {

@@ -29,6 +29,9 @@ V GitHub repozitari nastav:
 - `Settings -> Secrets and variables -> Actions -> New repository secret`
 - `SOUNDCHARTS_APP_ID`
 - `SOUNDCHARTS_API_KEY`
+- volitelne pro SoundCloud plays:
+  - `SOUNDCLOUD_CLIENT_ID`
+  - `SOUNDCLOUD_CLIENT_SECRET`
 
 Pak zapni Pages:
 
@@ -45,6 +48,27 @@ Pro rucni obnoveni dat:
 4. Klikni `Run workflow`.
 
 Takhle se Soundcharts requesty pouziji jen pri rucni aktualizaci.
+
+### SoundCloud plays
+
+SoundCloud data se tahaji jen pri workflow `sync_data=true`. Bez SoundCloud secrets dashboard normalne bezi dal, jen zustane `SoundCloud` na nule.
+
+Pro presne parovani tracku muzes doplnit soubor:
+
+```text
+data/soundcloud-links.json
+```
+
+Format:
+
+```json
+{
+  "GB2LD2410566": "https://soundcloud.com/artist/track",
+  "GB2LD2310228": 123456789
+}
+```
+
+Kdyz odkaz nebo ID neni doplneny, sync zkusi SoundCloud search podle nazvu tracku a interpreta.
 
 ## Manualni insights snapshot
 
