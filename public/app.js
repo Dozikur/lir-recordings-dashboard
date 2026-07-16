@@ -1,6 +1,7 @@
 ﻿const state = {
   catalog: null,
   cache: null,
+  external: null,
   config: null,
   auto: false,
   autoTimer: null,
@@ -48,6 +49,12 @@ const els = {
   heroSpotify: document.querySelector("#heroSpotify"),
   heroPlaylist: document.querySelector("#heroPlaylist"),
   heroScore: document.querySelector("#heroScore"),
+  topTracksPeriod: document.querySelector("#topTracksPeriod"),
+  trendingPeriod: document.querySelector("#trendingPeriod"),
+  playlistPeriod: document.querySelector("#playlistPeriod"),
+  topTracksList: document.querySelector("#topTracksList"),
+  trendingTracksList: document.querySelector("#trendingTracksList"),
+  playlistSourcesList: document.querySelector("#playlistSourcesList"),
 };
 
 els.syncButton.addEventListener("click", syncNow);
@@ -64,9 +71,10 @@ async function boot() {
 
 async function refreshAll() {
   const apiConfig = await getJson("/api/config").catch(() => null);
-  const [catalog, cache] = apiConfig
-    ? await Promise.all([getJson("/api/catalog"), getJson("/api/cache")])
-    : await Promise.all([getJson("data/catalog.json"), getJson(staticDataUrl("data/cache.json")).catch(() => null)]);
+  const externalPromise = getJson(staticDataUrl("data/external-insights.json")).catch(() => null);
+  const [catalog, cache, external] = apiConfig
+    ? await Promise.all([getJson("/api/catalog"), getJson("/api/cache"), externalPromise])
+    : await Promise.all([getJson("data/catalog.json"), getJson(staticDataUrl("data/cache.json")).catch(() => null), externalPromise]);
   state.config =
     apiConfig ||
     {
@@ -78,6 +86,7 @@ async function refreshAll() {
     };
   state.catalog = catalog;
   state.cache = withFallbackCache(cache, catalog);
+  state.external = external;
   if (state.config.staticMode) {
     els.syncButton.disabled = false;
     els.syncButton.querySelector("span:last-child").textContent = "Update data";
@@ -144,6 +153,7 @@ function render() {
   renderTotals(summary.totals || {});
   renderChart(state.cache.tracks);
   renderHighlights(summary, state.cache.tracks);
+  renderExternalInsights(state.external, state.cache.tracks);
   renderReleases();
 }
 
@@ -354,6 +364,77 @@ function renderReleases() {
     .join("");
 }
 
+function renderExternalInsights(external, tracks) {
+  const period = external?.period || "Last 30 days";
+  els.topTracksPeriod.textContent = period;
+  els.trendingPeriod.textContent = period;
+  els.playlistPeriod.textContent = period;
+  renderExternalTrackList(els.topTracksList, external?.topTracks || [], tracks);
+  renderExternalTrackList(els.trendingTracksList, external?.trendingTracks || [], tracks);
+  renderPlaylistSources(external?.playlistSources || []);
+}
+
+function renderExternalTrackList(target, rows, tracks) {
+  if (!rows.length) {
+    target.innerHTML = `<div class="empty-state">Ceka na rucni import dat.</div>`;
+    return;
+  }
+
+  target.innerHTML = rows
+    .slice(0, 10)
+    .map((row) => {
+      const matchedTrack = findTrackMatch(row, tracks);
+      const coverUrl = coverForTrack(matchedTrack || {});
+      const trendClass = Number(row.changePercent || 0) >= 0 ? "positive" : "negative";
+      const cover = coverUrl
+        ? `<img class="mini-cover" src="${escapeHtml(coverUrl)}" alt="" loading="lazy" />`
+        : '<span class="mini-cover mini-cover-fallback"></span>';
+      return `<div class="mini-row">
+        <span class="rank">${number(row.rank)}</span>
+        ${cover}
+        <div class="mini-copy">
+          <strong>${escapeHtml(row.track || "")}</strong>
+          <span>${escapeHtml(row.artist || row.release || "")}</span>
+        </div>
+        <div class="mini-value">
+          <strong>${number(row.streams)}</strong>
+          <span class="${trendClass}">${signedDecimal(row.changePercent)} %</span>
+        </div>
+      </div>`;
+    })
+    .join("");
+}
+
+function renderPlaylistSources(rows) {
+  if (!rows.length) {
+    els.playlistSourcesList.innerHTML = `<div class="empty-state">Ceka na rucni import playlist dat.</div>`;
+    return;
+  }
+
+  els.playlistSourcesList.innerHTML = rows
+    .slice(0, 10)
+    .map(
+      (row) => `<div class="playlist-row">
+        <span class="rank">${number(row.rank)}</span>
+        <div class="mini-copy">
+          <strong>${escapeHtml(row.playlist || "")}</strong>
+          <span>${number(row.followers)} followers / ${number(row.playedTracks)} played</span>
+        </div>
+        <div class="mini-value">
+          <strong>${number(row.streams)}</strong>
+          <span>streams</span>
+        </div>
+      </div>`
+    )
+    .join("");
+}
+
+function findTrackMatch(row, tracks) {
+  const rowTrack = normalize(row.track);
+  const rowRelease = normalize(row.release);
+  return tracks.find((track) => normalize(track.track) === rowTrack) || tracks.find((track) => normalize(track.release) === rowRelease);
+}
+
 function renderHighlights(summary, tracks) {
   if (!els.highlightList) return;
   const topSpotify = [...tracks].sort((a, b) => (b.stats?.spotifyStreams || 0) - (a.stats?.spotifyStreams || 0))[0];
@@ -452,13 +533,28 @@ function decimal(value) {
   return Number(value || 0).toLocaleString("cs-CZ", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 }
 
+function signedDecimal(value) {
+  const numeric = Number(value || 0);
+  const sign = numeric > 0 ? "+" : "";
+  return `${sign}${decimal(numeric)}`;
+}
+
 function formatDateTime(value) {
   return new Date(value).toLocaleString("cs-CZ", { dateStyle: "medium", timeStyle: "short" });
 }
 
 function trim(value, length) {
   const text = String(value || "");
-  return text.length > length ? `${text.slice(0, length - 1)}â€¦` : text;
+  return text.length > length ? `${text.slice(0, length - 1)}...` : text;
+}
+
+function normalize(value) {
+  return String(value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
 }
 
 function escapeHtml(value) {

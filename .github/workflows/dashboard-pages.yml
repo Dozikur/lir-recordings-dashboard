@@ -57,6 +57,9 @@ jobs:
           cp public/* site/
           cp data/catalog.json site/data/catalog.json
           cp data/cache.json site/data/cache.json
+          if [ -f data/external-insights.json ]; then
+            cp data/external-insights.json site/data/external-insights.json
+          fi
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

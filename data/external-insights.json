@@ -1,0 +1,28 @@
+{
+  "updatedAt": "2026-07-16T00:00:00.000Z",
+  "period": "Last 30 days",
+  "source": "Manual snapshot from Transparency dashboard",
+  "topTracks": [
+    { "rank": 1, "track": "Feel The Fire", "artist": "Pythius, REEBZ", "release": "Feel The Fire", "streams": 58505, "changePercent": 3.0 },
+    { "rank": 2, "track": "Let It Roll", "artist": "Rido", "release": "The Opening", "streams": 21959, "changePercent": -7.1 },
+    { "rank": 3, "track": "Nebula", "artist": "Camo & Krooked, Mefjus", "release": "Nebula", "streams": 12539, "changePercent": -5.1 },
+    { "rank": 4, "track": "The Other Side", "artist": "Sudley", "release": "The Other Side", "streams": 5820, "changePercent": -0.4 },
+    { "rank": 5, "track": "Ultimatum", "artist": "Killbox", "release": "Ultimatum", "streams": 4935, "changePercent": -1.3 },
+    { "rank": 6, "track": "Giant Growth", "artist": "IHR, Merikan", "release": "Caliban / Giant Growth - Single", "streams": 2100, "changePercent": -15.6 },
+    { "rank": 7, "track": "Let It Roll - DOVN Remix", "artist": "Rido, Counterstrike, DOVN", "release": "Let It Roll Remix EP", "streams": 1720, "changePercent": -59.3 },
+    { "rank": 8, "track": "Glory", "artist": "Rido", "release": "Glory", "streams": 1568, "changePercent": -72.0 },
+    { "rank": 9, "track": "Resurrection", "artist": "RageMode", "release": "Resurrection", "streams": 1310, "changePercent": -23.9 },
+    { "rank": 10, "track": "Let It Roll - VIP", "artist": "Rido, Counterstrike", "release": "Let It Roll", "streams": 1302, "changePercent": -6.7 }
+  ],
+  "trendingTracks": [
+    { "rank": 1, "track": "Feel The Fire", "artist": "Pythius, REEBZ", "release": "Feel The Fire", "streams": 58505, "changePercent": 3.0 },
+    { "rank": 2, "track": "No Discussion", "artist": "InsideInfo, Hybrid Minds, Grimm", "release": "Let It Roll Opening Show 2019", "streams": 961, "changePercent": 0.3 }
+  ],
+  "playlistSources": [
+    { "rank": 1, "playlist": "mix", "followers": 0, "playedTracks": 37, "trackedTracks": 0, "streams": 3607 },
+    { "rank": 2, "playlist": "discoverWeekly", "followers": 0, "playedTracks": 8, "trackedTracks": 0, "streams": 2414 },
+    { "rank": 3, "playlist": "NEUROFUNK BANGERS", "followers": 11588, "playedTracks": 4, "trackedTracks": 288, "streams": 2300 },
+    { "rank": 4, "playlist": "DnB 2025 | Best Drum & Bass Bangers", "followers": 160967, "playedTracks": 1, "trackedTracks": 239, "streams": 1691 },
+    { "rank": 5, "playlist": "Drum and Bass 2025", "followers": 308888, "playedTracks": 1, "trackedTracks": 241, "streams": 1614 }
+  ]
+}

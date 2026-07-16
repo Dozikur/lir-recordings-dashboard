@@ -45,3 +45,21 @@ Pro rucni obnoveni dat:
 4. Klikni `Run workflow`.
 
 Takhle se Soundcharts requesty pouziji jen pri rucni aktualizaci.
+
+## Manualni insights snapshot
+
+Dashboard umi zobrazit i rucne doplnena data z Transparency nebo Songstats exportu bez dalsiho API volani.
+
+Soubor:
+
+```text
+data/external-insights.json
+```
+
+Podporovane sekce:
+
+- `topTracks`
+- `trendingTracks`
+- `playlistSources`
+
+Po uprave souboru spust GitHub Pages workflow se `sync_data=false`. Nasadi se jen novy snapshot a vzhled, Soundcharts sync se nepusti.
