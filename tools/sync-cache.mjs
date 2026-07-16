@@ -7,6 +7,7 @@ const env = await loadEnv(path.join(root, ".env"));
 normalizeEnvSecrets();
 const catalog = JSON.parse(await fs.readFile(path.join(root, "data", "catalog.json"), "utf8"));
 const soundcloudLinks = await loadOptionalJson(path.join(root, "data", "soundcloud-links.json"), {});
+const soundcloudProfileUrl = env.SOUNDCLOUD_PROFILE_URL || "https://soundcloud.com/let-it-roll-recordings";
 assertAuthConfigured();
 console.log(
   `Soundcharts auth mode: ${env.SOUNDCHARTS_ACCESS_TOKEN ? "access_token" : "legacy_headers"}; SoundCloud: ${
@@ -183,6 +184,9 @@ async function soundcloudTrackFor(track, artist) {
   const linked = soundcloudLinks[track.isrc] || soundcloudLinks[track.catalogId];
   if (linked) return soundcloudTrackFromLink(linked);
 
+  const profileMatch = bestSoundcloudMatch(await soundcloudProfileTracks(), track, artist);
+  if (profileMatch) return profileMatch;
+
   const query = [track.track, artist].filter(Boolean).join(" ");
   const candidates = await soundcloudSearch(query);
   return bestSoundcloudMatch(candidates, track, artist);
@@ -211,6 +215,22 @@ async function soundcloudTrackFromLink(value) {
 
 async function soundcloudSearch(query) {
   const response = await soundcloud(`/tracks?q=${encodeURIComponent(query)}&limit=10&linked_partitioning=false`);
+  if (Array.isArray(response)) return response;
+  if (Array.isArray(response?.collection)) return response.collection;
+  return [];
+}
+
+let soundcloudProfileTracksPromise = null;
+
+async function soundcloudProfileTracks() {
+  soundcloudProfileTracksPromise ||= fetchSoundcloudProfileTracks();
+  return soundcloudProfileTracksPromise;
+}
+
+async function fetchSoundcloudProfileTracks() {
+  const user = await soundcloud(`/resolve?url=${encodeURIComponent(soundcloudProfileUrl)}`);
+  if (!user?.id) return [];
+  const response = await soundcloud(`/users/${encodeURIComponent(String(user.id))}/tracks?limit=200&linked_partitioning=false`);
   if (Array.isArray(response)) return response;
   if (Array.isArray(response?.collection)) return response.collection;
   return [];

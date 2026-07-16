@@ -53,6 +53,14 @@ Takhle se Soundcharts requesty pouziji jen pri rucni aktualizaci.
 
 SoundCloud data se tahaji jen pri workflow `sync_data=true`. Bez SoundCloud secrets dashboard normalne bezi dal, jen zustane `SoundCloud` na nule.
 
+Sync nejdrive paruje tracky proti oficialnimu profilu:
+
+```text
+https://soundcloud.com/let-it-roll-recordings
+```
+
+Kdyz tam nenajde jistou shodu, zkusi globalni SoundCloud search podle nazvu tracku a interpreta. Pro registraci API credentials pouzij SoundCloud Developers `Get an API key`; SoundCloud vyzaduje prihlaseny ucet a Artist Pro.
+
 Pro presne parovani tracku muzes doplnit soubor:
 
 ```text
