@@ -87,12 +87,12 @@ async function soundcloudTrackFor(track) {
   const linked = soundcloudLinks[track.isrc] || soundcloudLinks[track.catalogId];
   if (linked) return soundcloudTrackFromLink(linked);
 
-  const profileMatch = bestSoundcloudMatch(await soundcloudProfileTracks(), track);
+  const profileMatch = bestSoundcloudMatch(await soundcloudProfileTracks(), track, { minScore: 55, requireArtist: false });
   if (profileMatch) return profileMatch;
 
   const query = [track.track, track.artist].filter(Boolean).join(" ");
   const candidates = await soundcloudSearch(query);
-  return bestSoundcloudMatch(candidates, track);
+  return bestSoundcloudMatch(candidates, track, { minScore: 60, requireArtist: true });
 }
 
 async function soundcloudTrackFromLink(value) {
@@ -123,7 +123,8 @@ async function fetchSoundcloudProfileTracks() {
   return [];
 }
 
-function bestSoundcloudMatch(candidates, track) {
+function bestSoundcloudMatch(candidates, track, options = {}) {
+  const minScore = options.minScore ?? 60;
   const trackNeedle = normalize(track.track);
   const artistTokens = normalize(track.artist).split(" ").filter((token) => token.length > 2);
   const scored = candidates
@@ -133,19 +134,32 @@ function bestSoundcloudMatch(candidates, track) {
       const user = normalize(candidate.user?.username);
       const description = normalize(candidate.description);
       const permalink = normalize(candidate.permalink_url);
+      let artistEvidence = 0;
       let score = 0;
       if (title === trackNeedle) score += 70;
       else if (title.includes(trackNeedle) || trackNeedle.includes(title)) score += 45;
       for (const token of artistTokens) {
-        if (title.includes(token)) score += 10;
-        if (user.includes(token)) score += 14;
-        if (description.includes(token) || permalink.includes(token)) score += 4;
+        if (title.includes(token)) {
+          score += 20;
+          artistEvidence += 1;
+        }
+        if (user.includes(token)) {
+          score += 18;
+          artistEvidence += 1;
+        }
+        if (description.includes(token) || permalink.includes(token)) {
+          score += 6;
+          artistEvidence += 1;
+        }
       }
-      return { candidate, score };
+      return { artistEvidence, candidate, score };
     })
     .sort((a, b) => b.score - a.score);
 
-  return scored[0]?.score >= 60 ? scored[0].candidate : null;
+  const best = scored[0];
+  if (!best || best.score < minScore) return null;
+  if (options.requireArtist && artistTokens.length && !best.artistEvidence) return null;
+  return best.candidate;
 }
 
 async function soundcloud(endpoint) {
