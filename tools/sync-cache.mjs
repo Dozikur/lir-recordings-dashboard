@@ -8,6 +8,9 @@ normalizeEnvSecrets();
 const catalog = JSON.parse(await fs.readFile(path.join(root, "data", "catalog.json"), "utf8"));
 const soundcloudLinks = await loadOptionalJson(path.join(root, "data", "soundcloud-links.json"), {});
 const soundcloudProfileUrl = env.SOUNDCLOUD_PROFILE_URL || "https://soundcloud.com/let-it-roll-recordings";
+let soundcloudProfileTracksPromise = null;
+let soundcloudTokenPromise = null;
+let soundcloudWarningLogged = false;
 assertAuthConfigured();
 console.log(
   `Soundcharts auth mode: ${env.SOUNDCHARTS_ACCESS_TOKEN ? "access_token" : "legacy_headers"}; SoundCloud: ${
@@ -192,8 +195,6 @@ async function soundcloudTrackFor(track, artist) {
   return bestSoundcloudMatch(candidates, track, artist);
 }
 
-let soundcloudWarningLogged = false;
-
 async function soundcloudTrackOptional(track, artist) {
   try {
     return await soundcloudTrackFor(track, artist);
@@ -219,8 +220,6 @@ async function soundcloudSearch(query) {
   if (Array.isArray(response?.collection)) return response.collection;
   return [];
 }
-
-let soundcloudProfileTracksPromise = null;
 
 async function soundcloudProfileTracks() {
   soundcloudProfileTracksPromise ||= fetchSoundcloudProfileTracks();
@@ -275,8 +274,6 @@ async function soundcloud(endpoint) {
   }
   return body;
 }
-
-let soundcloudTokenPromise = null;
 
 async function getSoundcloudAccessToken() {
   if (env.SOUNDCLOUD_ACCESS_TOKEN) return env.SOUNDCLOUD_ACCESS_TOKEN;
