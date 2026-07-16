@@ -51,7 +51,12 @@ Takhle se Soundcharts requesty pouziji jen pri rucni aktualizaci.
 
 ### SoundCloud plays
 
-SoundCloud data se tahaji jen pri workflow `sync_data=true`. Bez SoundCloud secrets dashboard normalne bezi dal, jen zustane `SoundCloud` na nule.
+SoundCloud data se muzou doplnit bez Soundcharts requestu. Pri vycerpanem Soundcharts limitu spust workflow takto:
+
+- `sync_data=false`
+- `soundcloud_only=true`
+
+Dashboard vezme posledni publikovanou cache, doplni jen SoundCloud plays a znovu se nasadi. Bez SoundCloud secrets dashboard normalne bezi dal, jen zustane `SoundCloud` na nule.
 
 Sync nejdrive paruje tracky proti oficialnimu profilu:
 

@@ -8,6 +8,11 @@ on:
         required: true
         default: false
         type: boolean
+      soundcloud_only:
+        description: "Doplnit jen SoundCloud plays z posledni cache"
+        required: true
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -31,7 +36,7 @@ jobs:
           node-version: 22
 
       - name: Create private env
-        if: ${{ inputs.sync_data }}
+        if: ${{ inputs.sync_data || inputs.soundcloud_only }}
         run: |
           {
             echo "SOUNDCHARTS_APP_ID=${{ secrets.SOUNDCHARTS_APP_ID }}"
@@ -43,16 +48,20 @@ jobs:
           } > .env
 
       - name: Sync Soundcharts cache
-        if: ${{ inputs.sync_data }}
+        if: ${{ inputs.sync_data && !inputs.soundcloud_only }}
         run: npm run sync
 
       - name: Reuse current published cache
-        if: ${{ !inputs.sync_data }}
+        if: ${{ !inputs.sync_data || inputs.soundcloud_only }}
         run: |
           mkdir -p data
           curl --fail --location --silent --show-error \
             "https://dozikur.github.io/lir-recordings-dashboard/data/cache.json?design=${{ github.run_id }}" \
             --output data/cache.json
+
+      - name: Enrich SoundCloud cache
+        if: ${{ inputs.soundcloud_only }}
+        run: npm run sync:soundcloud
 
       - name: Build static dashboard
         run: |
