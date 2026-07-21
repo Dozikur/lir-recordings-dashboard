@@ -11,6 +11,8 @@
 const lirCoverOverrides = {
   LIR027: "https://i1.sndcdn.com/artworks-03P8Cbo4DR68jxFk-yoSTyw-t500x500.jpg",
   GB2LD2610218: "https://i1.sndcdn.com/artworks-03P8Cbo4DR68jxFk-yoSTyw-t500x500.jpg",
+  LIR028: "./lir028-redemption.png",
+  GB2LD2610309: "./lir028-redemption.png",
   LIR022: "https://i1.sndcdn.com/artworks-XHkUDSGd61O44d3r-CyyMkg-t500x500.jpg",
   GB2LD2610071: "https://i1.sndcdn.com/artworks-XHkUDSGd61O44d3r-CyyMkg-t500x500.jpg",
   LIR021: "https://i1.sndcdn.com/artworks-dM1gSdmp96mwxKFA-Aw5hhg-t500x500.jpg",
@@ -192,7 +194,7 @@ function renderRows(inputTracks) {
     .map((track) => {
       const stats = track.stats || {};
       const isMissing = !track.isrc;
-      const status = isMissing ? "missing" : track.ok ? "" : "error";
+      const status = isMissing ? "missing" : track.ok ? "" : track.status === "pending" ? "pending" : "error";
       const isrc = isMissing
         ? '<span class="pill missing">chybi ISRC</span>'
         : `<span class="pill ${status}">${escapeHtml(track.isrc)}</span>`;
@@ -412,7 +414,7 @@ function renderStatus(status) {
 }
 
 function withFallbackCache(cache, catalog) {
-  if (cache?.tracks?.length) return cache;
+  if (cache?.tracks?.length) return mergeCacheWithCatalog(cache, catalog);
   const tracks = catalog.tracks.map((track) => ({
     ...track,
     ok: false,
@@ -422,6 +424,41 @@ function withFallbackCache(cache, catalog) {
   return {
     updatedAt: null,
     source: "empty",
+    tracks,
+    summary: summarizeLocal(tracks, catalog.releases),
+  };
+}
+
+function mergeCacheWithCatalog(cache, catalog) {
+  const cachedByIsrc = new Map((cache.tracks || []).filter((track) => track.isrc).map((track) => [track.isrc, track]));
+  const usedIsrc = new Set();
+  const tracks = catalog.tracks.map((catalogTrack) => {
+    const cached = catalogTrack.isrc ? cachedByIsrc.get(catalogTrack.isrc) : null;
+    if (!cached) {
+      return {
+        ...catalogTrack,
+        ok: false,
+        status: catalogTrack.isrc ? "pending" : "needs_isrc",
+        stats: {},
+        score: 0,
+        error: catalogTrack.isrc ? "Ceka na dalsi API sync" : "Chybi ISRC",
+      };
+    }
+    usedIsrc.add(catalogTrack.isrc);
+    return {
+      ...cached,
+      ...catalogTrack,
+      stats: cached.stats || {},
+    };
+  });
+
+  for (const cached of cache.tracks || []) {
+    if (!cached.isrc || usedIsrc.has(cached.isrc)) continue;
+    tracks.push(cached);
+  }
+
+  return {
+    ...cache,
     tracks,
     summary: summarizeLocal(tracks, catalog.releases),
   };

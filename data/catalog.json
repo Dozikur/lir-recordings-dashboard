@@ -25,7 +25,7 @@
     { "catalogId": "LIR023", "release": "Glory", "isrcRaw": "GB2LD2610129", "status": "verified", "expectedTracks": 1 },
     { "catalogId": "LIREP025", "release": "Let It Roll Remix EP", "isrcRaw": "GB2LD2610145 / GB2LD2610146 / GB2LD2610147", "status": "verified", "expectedTracks": 3 },
     { "catalogId": "LIR027", "release": "The Power", "isrcRaw": "GB2LD2610218", "status": "verified", "expectedTracks": 1 },
-    { "catalogId": "LIR028", "release": "Redemption", "isrcRaw": "zatim verejne neovereno", "status": "unverified", "expectedTracks": 1 }
+    { "catalogId": "LIR028", "release": "Redemption", "isrcRaw": "GB2LD2610309", "status": "verified", "expectedTracks": 1 }
   ],
   "tracks": [
     { "catalogId": "LIR001", "release": "What You See", "track": "What You See", "isrc": "GB2LD0901972" },
@@ -74,6 +74,7 @@
     { "catalogId": "LIR022", "release": "Shelter", "track": "Shelter", "isrc": "GB2LD2610071" },
     { "catalogId": "LIR023", "release": "Glory", "track": "Glory", "isrc": "GB2LD2610129" },
     { "catalogId": "LIR027", "release": "The Power", "track": "The Power", "isrc": "GB2LD2610218" },
+    { "catalogId": "LIR028", "release": "Redemption", "track": "Redemption", "artist": "Camo & Krooked, Mefjus, Joe Killington", "isrc": "GB2LD2610309" },
     { "catalogId": "LIREP025", "release": "Let It Roll Remix EP", "track": "Let It Roll - DOVN Remix", "isrc": "GB2LD2610145" },
     { "catalogId": "LIREP025", "release": "Let It Roll Remix EP", "track": "Let It Roll - Noctal Remix", "isrc": "GB2LD2610146" },
     { "catalogId": "LIREP025", "release": "Let It Roll Remix EP", "track": "Let It Roll - IAMDOOMED Remix", "isrc": "GB2LD2610147" }

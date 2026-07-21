@@ -389,6 +389,11 @@ tbody tr:hover {
   color: #ffd98a;
 }
 
+.pill.pending {
+  background: rgba(86, 164, 255, 0.16);
+  color: #b9d8ff;
+}
+
 .pill.error {
   background: rgba(255, 93, 93, 0.14);
   color: #ffb3b3;
