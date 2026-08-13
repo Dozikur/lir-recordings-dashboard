@@ -7,7 +7,9 @@ const env = await loadEnv(path.join(root, ".env"));
 normalizeEnvSecrets();
 
 const cachePath = path.join(root, "data", "cache.json");
-const cache = JSON.parse(await fs.readFile(cachePath, "utf8"));
+const catalog = JSON.parse(await fs.readFile(path.join(root, "data", "catalog.json"), "utf8"));
+const publishedCache = JSON.parse(await fs.readFile(cachePath, "utf8"));
+const cache = mergeCacheWithCatalog(publishedCache, catalog);
 const soundcloudLinks = await loadOptionalJson(path.join(root, "data", "soundcloud-links.json"), {});
 const soundcloudProfileUrl = env.SOUNDCLOUD_PROFILE_URL || "https://soundcloud.com/let-it-roll-recordings";
 
@@ -29,7 +31,7 @@ const enriched = {
   updatedAt: new Date().toISOString(),
   source: `${cache.source || "cache"}+soundcloud`,
   tracks,
-  summary: summarize(tracks, cache.summary || {}),
+  summary: summarize(tracks, cache.summary || {}, catalog),
 };
 
 await fs.writeFile(cachePath, `${JSON.stringify(enriched, null, 2)}\n`, "utf8");
@@ -202,7 +204,42 @@ async function fetchSoundcloudAccessToken() {
   return body.access_token;
 }
 
-function summarize(tracks, previousSummary) {
+function mergeCacheWithCatalog(cache, catalog) {
+  const cachedByIsrc = new Map((cache.tracks || []).filter((track) => track.isrc).map((track) => [track.isrc, track]));
+  const usedIsrc = new Set();
+  const tracks = catalog.tracks.map((catalogTrack) => {
+    const cached = catalogTrack.isrc ? cachedByIsrc.get(catalogTrack.isrc) : null;
+    if (!cached) {
+      return {
+        ...catalogTrack,
+        ok: false,
+        status: catalogTrack.isrc ? "pending" : "needs_isrc",
+        stats: {},
+        score: 0,
+        error: catalogTrack.isrc ? "Ceka na dalsi Soundcharts sync" : "Chybi ISRC",
+      };
+    }
+    usedIsrc.add(catalogTrack.isrc);
+    return {
+      ...cached,
+      ...catalogTrack,
+      stats: cached.stats || {},
+    };
+  });
+
+  for (const cached of cache.tracks || []) {
+    if (!cached.isrc || usedIsrc.has(cached.isrc)) continue;
+    tracks.push(cached);
+  }
+
+  return {
+    ...cache,
+    tracks,
+    summary: summarize(tracks, cache.summary || {}, catalog),
+  };
+}
+
+function summarize(tracks, previousSummary, catalog) {
   const totals = tracks.reduce(
     (sum, track) => {
       const stats = track.stats || {};
@@ -217,10 +254,14 @@ function summarize(tracks, previousSummary) {
     { spotifyStreams: 0, youtubeViews: 0, soundcloudPlays: 0, playlistReach: 0, radioSpins: 0, score: 0 }
   );
   const synced = tracks.filter((track) => track.ok).length;
+  const readyForApi = tracks.filter((track) => track.isrc).length;
   return {
     ...previousSummary,
+    releases: catalog?.releases?.length || previousSummary.releases || 0,
     trackRows: tracks.length,
+    readyForApi,
     synced,
+    needsIsrc: tracks.filter((track) => !track.isrc).length,
     totals,
     averageScore: synced ? Math.round((totals.score / synced) * 10) / 10 : 0,
   };
