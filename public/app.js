@@ -246,16 +246,32 @@ function coverForTrack(track) {
 
 function sortTracks(tracks) {
   const sort = els.sortSelect.value;
-  if (sort === "streams") {
-    return tracks.sort((a, b) => streamTotal(b) - streamTotal(a));
-  }
   if (sort === "catalog") {
     return tracks.sort((a, b) => String(a.catalogId).localeCompare(String(b.catalogId)));
   }
   if (sort === "missing") {
     return tracks.sort((a, b) => Number(!b.isrc) - Number(!a.isrc));
   }
-  return tracks.sort((a, b) => (b.score || 0) - (a.score || 0));
+  const [metric, direction = "desc"] = sort.split("-");
+  const multiplier = direction === "asc" ? 1 : -1;
+  return tracks.sort((a, b) => {
+    const delta = metricValue(a, metric) - metricValue(b, metric);
+    if (delta !== 0) return delta * multiplier;
+    return String(a.catalogId).localeCompare(String(b.catalogId)) || String(a.track).localeCompare(String(b.track));
+  });
+}
+
+function metricValue(track, metric) {
+  const stats = track.stats || {};
+  const values = {
+    score: track.score || 0,
+    spotify: stats.spotifyStreams || 0,
+    youtube: stats.youtubeViews || 0,
+    soundcloud: stats.soundcloudPlays || 0,
+    playlist: stats.playlistReach || 0,
+    radio: stats.radioSpins || 0,
+  };
+  return Number(values[metric] || 0);
 }
 
 function streamTotal(track) {
