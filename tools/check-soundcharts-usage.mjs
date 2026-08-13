@@ -34,7 +34,11 @@ console.log(
 
 if (!response.ok) {
   const message = body?.errors?.[0]?.message || body?.message || response.statusText;
-  throw new Error(`Soundcharts usage ${response.status}: ${message}`);
+  if (response.status === 429 || /quota/i.test(message)) {
+    console.warn(`Soundcharts quota check: ${message}`);
+  } else {
+    throw new Error(`Soundcharts usage ${response.status}: ${message}`);
+  }
 }
 
 async function loadEnv(filePath) {
