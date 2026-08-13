@@ -13,6 +13,11 @@ on:
         required: true
         default: false
         type: boolean
+      check_usage:
+        description: "Zkontrolovat Soundcharts API quota bez syncu"
+        required: true
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -36,7 +41,7 @@ jobs:
           node-version: 22
 
       - name: Create private env
-        if: ${{ inputs.sync_data || inputs.soundcloud_only }}
+        if: ${{ inputs.sync_data || inputs.soundcloud_only || inputs.check_usage }}
         run: |
           {
             echo "SOUNDCHARTS_APP_ID=${{ secrets.SOUNDCHARTS_APP_ID }}"
@@ -46,6 +51,10 @@ jobs:
             echo "SOUNDCLOUD_CLIENT_SECRET=${{ secrets.SOUNDCLOUD_CLIENT_SECRET }}"
             echo "SOUNDCLOUD_PROFILE_URL=https://soundcloud.com/let-it-roll-recordings"
           } > .env
+
+      - name: Check Soundcharts usage
+        if: ${{ inputs.check_usage }}
+        run: npm run usage:soundcharts
 
       - name: Sync Soundcharts cache
         if: ${{ inputs.sync_data && !inputs.soundcloud_only }}

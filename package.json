@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node --use-system-ca server.mjs",
     "sync": "node --use-system-ca tools/sync-cache.mjs",
-    "sync:soundcloud": "node --use-system-ca tools/enrich-soundcloud-cache.mjs"
+    "sync:soundcloud": "node --use-system-ca tools/enrich-soundcloud-cache.mjs",
+    "usage:soundcharts": "node --use-system-ca tools/check-soundcharts-usage.mjs"
   }
 }
